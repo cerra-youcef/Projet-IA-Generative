@@ -21,3 +21,12 @@ memory = MemorySaver()
 def get_compiled_app():
     return build_workflow()
 
+
+# --- ÉTAT GLOBAL ---
+class AgentState(TypedDict):
+    messages:        Annotated[List[BaseMessage], operator.add]
+    protocol_data:   str
+    is_safe:         bool
+    revision_count:  int
+    shared_memory:   dict   # mémoire partagée inter-agents
+    agent_plans:     dict   # plan + actions par agent
