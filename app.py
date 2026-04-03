@@ -83,3 +83,36 @@ def lookup_drug_interactions(drug_a: str, drug_b: str) -> dict:
     key = (drug_a.lower(), drug_b.lower())
     result = known.get(key) or known.get((drug_b.lower(), drug_a.lower()))
     return result or {"level":"AUCUNE CONNUE","effect":f"Pas d'interaction documentée entre {drug_a} et {drug_b}"}
+
+# --- OUTIL 3 : Contre-indications ---
+@tool
+def check_contraindications(drug: str, condition: str) -> dict:
+    """Vérifie les contre-indications d'un médicament pour une condition."""
+    ci = {
+        ("metformine","insuffisance rénale"): "CONTRE-INDIQUÉ — Acidose lactique",
+        ("ibuprofène","insuffisance rénale"): "CONTRE-INDIQUÉ — Aggravation rénale",
+        ("ibuprofène","ulcère gastrique"):    "CONTRE-INDIQUÉ — Risque hémorragique",
+        ("corticoïdes","diabète"):            "PRÉCAUTION — Hyperglycémie",
+        ("bêtabloquants","asthme"):           "CONTRE-INDIQUÉ — Bronchospasme",
+    }
+    verdict = ci.get((drug.lower(), condition.lower()), "Pas de contre-indication connue.")
+    return {"drug": drug, "condition": condition, "verdict": verdict}
+
+!git add app.py
+!git commit -m "feat(tools): add check_contraindications tool"
+!git push origin main
+
+# --- OUTIL 3 : Contre-indications ---
+@tool
+def check_contraindications(drug: str, condition: str) -> dict:
+    """Vérifie les contre-indications d'un médicament pour une condition."""
+    ci = {
+        ("metformine","insuffisance rénale"): "CONTRE-INDIQUÉ — Acidose lactique",
+        ("ibuprofène","insuffisance rénale"): "CONTRE-INDIQUÉ — Aggravation rénale",
+        ("ibuprofène","ulcère gastrique"):    "CONTRE-INDIQUÉ — Risque hémorragique",
+        ("corticoïdes","diabète"):            "PRÉCAUTION — Hyperglycémie",
+        ("bêtabloquants","asthme"):           "CONTRE-INDIQUÉ — Bronchospasme",
+    }
+    verdict = ci.get((drug.lower(), condition.lower()), "Pas de contre-indication connue.")
+    return {"drug": drug, "condition": condition, "verdict": verdict}
+
