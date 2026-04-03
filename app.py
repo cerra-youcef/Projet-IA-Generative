@@ -30,3 +30,14 @@ class AgentState(TypedDict):
     revision_count:  int
     shared_memory:   dict   # mémoire partagée inter-agents
     agent_plans:     dict   # plan + actions par agent
+
+# --- OUTIL 1 : Calcul de dosage ---
+@tool
+def calculate_dosage(weight_kg: float, dose_per_kg: float, frequency_per_day: int) -> dict:
+    """Calcule la dose journalière totale et par prise."""
+    dose_per_intake = weight_kg * dose_per_kg
+    return {
+        "dose_per_intake_mg": round(dose_per_intake, 2),
+        "total_daily_mg":     round(dose_per_intake * frequency_per_day, 2),
+        "frequency":          frequency_per_day,
+    }
