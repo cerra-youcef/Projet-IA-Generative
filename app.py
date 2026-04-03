@@ -165,3 +165,38 @@ def get_llm():
 # --- LLM ---
 def get_llm():
     return ChatOpenAI(model="gpt-4o", temperature=0, openai_api_key=API_KEY)
+
+# --- MÉMOIRE PARTAGÉE & PLANS ---
+def update_memory(state: AgentState, key: str, value) -> dict:
+    mem = dict(state.get("shared_memory", {}))
+    mem[key] = value
+    return mem
+
+def update_plan(state: AgentState, agent_name: str, plan: list, actions: list) -> dict:
+    plans = dict(state.get("agent_plans", {}))
+    plans[agent_name] = {
+        "plan":      plan,
+        "actions":   actions,
+        "timestamp": datetime.now().isoformat()
+    }
+    return plans
+
+!git add app.py
+!git commit -m "feat(memory): add update_memory and update_plan helpers"
+!git push origin main
+
+# --- MÉMOIRE PARTAGÉE & PLANS ---
+def update_memory(state: AgentState, key: str, value) -> dict:
+    mem = dict(state.get("shared_memory", {}))
+    mem[key] = value
+    return mem
+
+def update_plan(state: AgentState, agent_name: str, plan: list, actions: list) -> dict:
+    plans = dict(state.get("agent_plans", {}))
+    plans[agent_name] = {
+        "plan":      plan,
+        "actions":   actions,
+        "timestamp": datetime.now().isoformat()
+    }
+    return plans
+
