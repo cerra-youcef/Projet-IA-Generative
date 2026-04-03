@@ -132,3 +132,28 @@ def pharmacovigilance_search(drug_name: str) -> dict:
         "alerts":  alerts.get(drug_name.lower(), ["Aucune alerte majeure."]),
         "source":  "PharmacoDB v3.1 (simulé)"
     }
+
+# --- OUTIL 5 : Score EBM ---
+@tool
+def evidence_score(protocol_description: str) -> dict:
+    """Attribue un niveau de preuve EBM au protocole."""
+    desc = protocol_description.lower()
+    if any(k in desc for k in ["randomisé","rct","méta-analyse"]):    score = 1
+    elif any(k in desc for k in ["cohorte","prospective","guideline"]): score = 2
+    elif any(k in desc for k in ["cas clinique","avis expert"]):        score = 4
+    else:                                                                score = 3
+    levels = {1:"A — Preuve forte",2:"B — Preuve modérée",3:"C — Consensus",4:"D — Données limitées"}
+    return {"score": score, "label": levels[score]}
+
+# Mapping outils → agents
+AGENT_TOOLS = {
+    "step_back":        [check_contraindications, evidence_score],
+    "analyzer_cot":     [calculate_dosage, check_contraindications],
+    "explorer_tot":     [lookup_drug_interactions, pharmacovigilance_search],
+    "verifier_react":   [pharmacovigilance_search, lookup_drug_interactions, calculate_dosage],
+    "critic_correction":[evidence_score, check_contraindications],
+}
+
+def run_tool_safe(tool_fn, **kwargs):
+    try:    return tool_fn.invoke(kwargs)
+    except Exception as e: return {"error": str(e)}
