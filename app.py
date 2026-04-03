@@ -116,3 +116,19 @@ def check_contraindications(drug: str, condition: str) -> dict:
     verdict = ci.get((drug.lower(), condition.lower()), "Pas de contre-indication connue.")
     return {"drug": drug, "condition": condition, "verdict": verdict}
 
+
+# --- OUTIL 4 : Pharmacovigilance ---
+@tool
+def pharmacovigilance_search(drug_name: str) -> dict:
+    """Recherche dans la base de pharmacovigilance simulée."""
+    alerts = {
+        "metformine": ["Acidose lactique rare","Arrêt avant injection iodée"],
+        "warfarine":  ["Marge étroite — INR requis","Interactions alimentaires"],
+        "amiodarone": ["Toxicité pulmonaire","Dysthyroïdie","Hépatotoxicité"],
+        "ibuprofène": ["Risque cardiovasculaire","Toxicité rénale"],
+    }
+    return {
+        "drug":    drug_name,
+        "alerts":  alerts.get(drug_name.lower(), ["Aucune alerte majeure."]),
+        "source":  "PharmacoDB v3.1 (simulé)"
+    }
