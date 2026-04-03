@@ -157,3 +157,11 @@ AGENT_TOOLS = {
 def run_tool_safe(tool_fn, **kwargs):
     try:    return tool_fn.invoke(kwargs)
     except Exception as e: return {"error": str(e)}
+
+# --- LLM ---
+def get_llm():
+    return ChatOpenAI(model="gpt-4o", temperature=0, openai_api_key=API_KEY)
+
+# --- LLM ---
+def get_llm():
+    return ChatOpenAI(model="gpt-4o", temperature=0, openai_api_key=API_KEY)
