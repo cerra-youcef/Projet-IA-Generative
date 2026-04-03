@@ -200,3 +200,25 @@ def update_plan(state: AgentState, agent_name: str, plan: list, actions: list) -
     }
     return plans
 
+
+# --- AGENT 1 : STEP-BACK ---
+def step_back_agent(state: AgentState):
+    llm  = get_llm()
+    plan = [
+        "1. Identifier les classes médicamenteuses",
+        "2. Vérifier les contre-indications majeures",
+        "3. Évaluer le niveau de preuve EBM",
+        "4. Synthétiser les principes de vigilance",
+    ]
+    actions_log = [
+        {"tool": "check_contraindications", "result": run_tool_safe(check_contraindications, drug="ibuprofène", condition="insuffisance rénale")},
+        {"tool": "evidence_score",          "result": run_tool_safe(evidence_score, protocol_description=state["protocol_data"])},
+    ]
+    system   = SystemMessage(content="Tu es pharmacologue expert. Applique le Step-Back : rappelle les principes fondamentaux avant d'analyser le cas.")
+    prompt   = HumanMessage(content=f"ÉTAPE 0 — STEP-BACK\nPLAN :\n"+"\n".join(plan)+f"\n\nOUTILS :\n{json.dumps(actions_log,ensure_ascii=False,indent=2)}\n\nPROTOCOLE :\n{state['protocol_data']}\n\nSynthétise les points de vigilance fondamentaux.")
+    response = llm.invoke([system, prompt])
+    return {
+        "messages":      [response],
+        "shared_memory": update_memory(state, "principles", response.content),
+        "agent_plans":   update_plan(state, "step_back", plan, actions_log),
+    }
