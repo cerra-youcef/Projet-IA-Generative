@@ -222,3 +222,28 @@ def step_back_agent(state: AgentState):
         "shared_memory": update_memory(state, "principles", response.content),
         "agent_plans":   update_plan(state, "step_back", plan, actions_log),
     }
+
+# --- AGENT 2 : CHAIN OF THOUGHT ---
+def analyzer_cot_agent(state: AgentState):
+    llm  = get_llm()
+    plan = [
+        "1. Extraire les paramètres de dosage",
+        "2. Calculer la dose journalière",
+        "3. Comparer au seuil thérapeutique",
+        "4. Signaler toute anomalie",
+    ]
+    poids = float(st.session_state.get("intake", {}).get("poids", 70))
+    actions_log = [
+        {"tool": "calculate_dosage",        "result": run_tool_safe(calculate_dosage, weight_kg=poids, dose_per_kg=10, frequency_per_day=3)},
+        {"tool": "check_contraindications", "result": run_tool_safe(check_contraindications, drug="amoxicilline", condition="allergie pénicilline")},
+    ]
+    principles = state.get("shared_memory", {}).get("principles", "")
+    system   = SystemMessage(content="Tu es médecin interniste. Applique la Chain of Thought : chaque conclusion doit être explicitement justifiée.")
+    prompt   = HumanMessage(content=f"ÉTAPE 1 — CoT\nPLAN :\n"+"\n".join(plan)+f"\n\nPRINCIPES :\n{principles}\n\nOUTILS :\n{json.dumps(actions_log,ensure_ascii=False,indent=2)}\n\nPROTOCOLE :\n{state['protocol_data']}\n\nRaisonne étape par étape.")
+    response = llm.invoke([system, prompt])
+    mem = update_memory(state, "cot_analysis", response.content)
+    return {
+        "messages":      [response],
+        "shared_memory": mem,
+        "agent_plans":   update_plan(state, "analyzer_cot", plan, actions_log),
+    }
