@@ -296,3 +296,41 @@ def verifier_react_agent(state: AgentState):
         "shared_memory": update_memory(state, "react_verdict", response.content),
         "agent_plans":   update_plan(state, "verifier_react", plan, actions_log),
     }
+
+
+# --- AGENT 5 : SELF-REFLEXION ---
+def critic_self_correction_agent(state: AgentState):
+    llm      = get_llm()
+    revision = state.get("revision_count", 0)
+    plan = [
+        "1. Réévaluer le niveau de preuve EBM",
+        "2. Vérifier cohérence logique inter-agents",
+        "3. Identifier biais cognitifs éventuels",
+        "4. Produire verdict SAFE/UNSAFE + score confiance",
+    ]
+    actions_log = [
+        {"tool": "evidence_score_final",          "result": run_tool_safe(evidence_score, protocol_description=state["protocol_data"])},
+        {"tool": "check_contraindications_final", "result": run_tool_safe(check_contraindications, drug="corticoïdes", condition="diabète")},
+    ]
+    mem    = state.get("shared_memory", {})
+    system = SystemMessage(content="Tu es auditeur médical externe. Applique la Reflexion : identifie les erreurs et propose des corrections.")
+    prompt = HumanMessage(content=f"ÉTAPE 4 — REFLEXION (Révision n°{revision+1})\nPLAN :\n"+"\n".join(plan)+f"\n\nMÉMOIRE :\n- Principes : {mem.get('principles','')}\n- CoT : {mem.get('cot_analysis','')}\n- ToT : {mem.get('tot_branches','')}\n- ReAct : {mem.get('react_verdict','')}\n\nOUTILS :\n{json.dumps(actions_log,ensure_ascii=False,indent=2)}\n\nConclure : SAFE ou UNSAFE + score confiance 0-100%.")
+    response = llm.invoke([system, prompt])
+    is_safe  = "SAFE" in response.content.upper()
+    mem2     = update_memory(state, "critic_verdict", response.content)
+    return {
+        "messages":      [response],
+        "shared_memory": mem2,
+        "agent_plans":   update_plan(state, "critic_correction", plan, actions_log),
+        "is_safe":        is_safe,
+        "revision_count": revision + 1,
+    }
+
+# --- AGENT FINAL : SYNTHÈSE ---
+def finalizer_agent(state: AgentState):
+    llm = get_llm()
+    mem = state.get("shared_memory", {})
+    system = SystemMessage(content="Tu es rédacteur du rapport médical final. Synthétise en document structuré et actionnable.")
+    prompt = HumanMessage(content=f"SYNTHÈSE FINALE\n\nProtocole :\n{state['protocol_data']}\n\nMémoire :\n• Principes : {mem.get('principles','')}\n• CoT : {mem.get('cot_analysis','')}\n• ToT : {mem.get('tot_branches','')}\n• ReAct : {mem.get('react_verdict','')}\n• Critique : {mem.get('critic_verdict','')}\n\nRédige :\n✅ Décision finale\n📋 Justification\n⚠️ Points de vigilance\n💊 Recommandations\n📊 Niveau de preuve EBM")
+    response = llm.invoke([system, prompt])
+    return {"messages": [response]}
