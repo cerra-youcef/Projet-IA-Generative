@@ -247,3 +247,26 @@ def analyzer_cot_agent(state: AgentState):
         "shared_memory": mem,
         "agent_plans":   update_plan(state, "analyzer_cot", plan, actions_log),
     }
+
+# --- AGENT 3 : TREE OF THOUGHTS ---
+def explorer_tot_agent(state: AgentState):
+    llm  = get_llm()
+    plan = [
+        "1. Vérifier les interactions médicamenteuses",
+        "2. Consulter la pharmacovigilance",
+        "3. Générer 3 branches de stratégie",
+        "4. Évaluer bénéfice/risque de chaque branche",
+    ]
+    actions_log = [
+        {"tool": "lookup_drug_interactions", "result": run_tool_safe(lookup_drug_interactions, drug_a="warfarine", drug_b="aspirine")},
+        {"tool": "pharmacovigilance_search", "result": run_tool_safe(pharmacovigilance_search, drug_name="amiodarone")},
+    ]
+    mem    = state.get("shared_memory", {})
+    system = SystemMessage(content="Tu es expert en arbres de décision médicale. Génère et évalue 3 stratégies en parallèle.")
+    prompt = HumanMessage(content=f"ÉTAPE 2 — ToT\nPLAN :\n"+"\n".join(plan)+f"\n\nMÉMOIRE :\n{mem.get('principles','')}\n{mem.get('cot_analysis','')}\n\nOUTILS :\n{json.dumps(actions_log,ensure_ascii=False,indent=2)}\n\nGénère 3 branches (Validation / Modification / Substitution) avec score bénéfice/risque.")
+    response = llm.invoke([system, prompt])
+    return {
+        "messages":      [response],
+        "shared_memory": update_memory(state, "tot_branches", response.content),
+        "agent_plans":   update_plan(state, "explorer_tot", plan, actions_log),
+    }
