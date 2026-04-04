@@ -270,3 +270,29 @@ def explorer_tot_agent(state: AgentState):
         "shared_memory": update_memory(state, "tot_branches", response.content),
         "agent_plans":   update_plan(state, "explorer_tot", plan, actions_log),
     }
+
+# --- AGENT 4 : ReAct ---
+def verifier_react_agent(state: AgentState):
+    llm  = get_llm()
+    plan = [
+        "1. Re-consulter la pharmacovigilance pour molécules critiques",
+        "2. Recalculer le dosage corrigé",
+        "3. Vérifier les interactions résiduelles",
+        "4. Produire un rapport de validation",
+    ]
+    poids = float(st.session_state.get("intake", {}).get("poids", 65))
+    actions_log = [
+        {"tool": "pharmacovigilance_search_warfarine",  "result": run_tool_safe(pharmacovigilance_search, drug_name="warfarine")},
+        {"tool": "pharmacovigilance_search_metformine", "result": run_tool_safe(pharmacovigilance_search, drug_name="metformine")},
+        {"tool": "lookup_drug_interactions",            "result": run_tool_safe(lookup_drug_interactions, drug_a="metformine", drug_b="alcool")},
+        {"tool": "calculate_dosage_corrigé",            "result": run_tool_safe(calculate_dosage, weight_kg=poids, dose_per_kg=15, frequency_per_day=2)},
+    ]
+    mem    = state.get("shared_memory", {})
+    system = SystemMessage(content="Tu es pharmacien hospitalier expert. Applique ReAct : Reason→Act→Observe→Repeat.")
+    prompt = HumanMessage(content=f"ÉTAPE 3 — ReAct\nPLAN :\n"+"\n".join(plan)+f"\n\nMÉMOIRE :\n{mem.get('principles','')}\n{mem.get('tot_branches','')}\n\nOUTILS :\n{json.dumps(actions_log,ensure_ascii=False,indent=2)}\n\nVerdic : VALIDÉ / MODIFIÉ / REJETÉ avec justification.")
+    response = llm.invoke([system, prompt])
+    return {
+        "messages":      [response],
+        "shared_memory": update_memory(state, "react_verdict", response.content),
+        "agent_plans":   update_plan(state, "verifier_react", plan, actions_log),
+    }
